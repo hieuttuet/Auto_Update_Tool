@@ -5,6 +5,7 @@
         Width="420"
         Height="120"
         ResizeMode="NoResize"
+        WindowStyle="None"
         WindowStartupLocation="CenterScreen"
         ShowInTaskbar="True">
 
