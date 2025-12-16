@@ -8,15 +8,19 @@
         WindowStyle="None"
         WindowStartupLocation="CenterScreen"
         ShowInTaskbar="True">
-
-    <Grid Margin="20">
-        <StackPanel>
-            <TextBlock Text="Updating application..."
+    <Border BorderBrush="Gray" 
+            BorderThickness="1" 
+            Background="White" >
+        <Grid Margin="20" Background="WhiteSmoke">
+            <StackPanel>
+                <TextBlock Text="Updating application..."
                        FontSize="14"
                        Margin="0,0,0,10"/>
 
-            <ProgressBar Height="20"
+                <ProgressBar Height="20"
                          IsIndeterminate="True"/>
-        </StackPanel>
-    </Grid>
+            </StackPanel>
+        </Grid>
+    </Border>
+    
 </Window>
