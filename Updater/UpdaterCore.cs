@@ -11,6 +11,7 @@ namespace Updater
     {
         private static readonly string[] SkipFiles =
         {
+            "LocalConfig.ini",
             "updater.exe"
         };
 
@@ -18,6 +19,9 @@ namespace Updater
 
         public static int Run(string[] args)
         {
+            string backupDir = string.Empty;
+            string targetDir = string.Empty;
+
             try
             {
                 if (args.Length != 3)
@@ -31,8 +35,9 @@ namespace Updater
                 }
 
                 string sourceDir = args[0].TrimEnd('\\', '/');
-                string targetDir = args[1].TrimEnd('\\', '/');
+                targetDir = args[1].TrimEnd('\\', '/');
                 string mainExe = NormalizeExeName(args[2]);
+                backupDir = Path.Combine(targetDir, "_update_backup_");
 
                 if (!Directory.Exists(sourceDir))
                 {
@@ -54,12 +59,29 @@ namespace Updater
                     return 3;
                 }
 
-                // 2️⃣ Copy file update
-                Log("Starting update copy...");
-                CopyDirectory(sourceDir, targetDir);
-                Log("Update copy completed.");
+                // 2️⃣ Tạo bản sao lưu (Backup) trước khi cập nhật
+                Log("Creating backup...");
+                CreateBackup(targetDir, backupDir);
 
-                // 3️⃣ Restart app
+                try
+                {
+                    // 3️⃣ Copy file update
+                    Log("Starting update copy...");
+                    CopyDirectory(sourceDir, targetDir);
+                    Log("Update copy completed.");
+
+                    // Cập nhật thành công -> Xóa bản sao lưu
+                    CleanupBackup(backupDir);
+                }
+                catch (Exception ex)
+                {
+                    // 4️⃣ Hoàn tác (Rollback) nếu quá trình copy bị lỗi
+                    Log($"Error during copy: {ex.Message}. Starting rollback...");
+                    Rollback(backupDir, targetDir);
+                    throw; // Ném lỗi ra catch ngoài cùng để thông báo
+                }
+
+                // 5️⃣ Restart app
                 string appPath = Path.Combine(targetDir, mainExe);
                 if (!File.Exists(appPath))
                 {
@@ -79,6 +101,53 @@ namespace Updater
                 MessageBox.Show("FATAL ERROR:" + ex.ToString(), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return 99;
             }
+        }
+
+        // ===============================
+        // 🔹 BACKUP & ROLLBACK LOGIC
+        // ===============================
+
+        private static void CreateBackup(string source, string dest)
+        {
+            if (Directory.Exists(dest)) Directory.Delete(dest, true);
+            Directory.CreateDirectory(dest);
+
+            foreach (string file in Directory.GetFiles(source))
+            {
+                string name = Path.GetFileName(file);
+                if (ShouldSkipFile(name) || name.Equals("updater.log", StringComparison.OrdinalIgnoreCase)) continue;
+                File.Copy(file, Path.Combine(dest, name), true);
+            }
+            // Nếu có thư mục con cần backup, có thể dùng đệ quy tương tự CopyDirectory
+        }
+
+        private static void Rollback(string backup, string target)
+        {
+            try
+            {
+                if (!Directory.Exists(backup)) return;
+                Log("Restoring files from backup...");
+
+                foreach (string file in Directory.GetFiles(backup))
+                {
+                    string name = Path.GetFileName(file);
+                    File.Copy(file, Path.Combine(target, name), true);
+                }
+                Log("Rollback completed.");
+            }
+            catch (Exception ex)
+            {
+                Log($"Rollback failed: {ex.Message}");
+            }
+        }
+
+        private static void CleanupBackup(string backupPath)
+        {
+            try
+            {
+                if (Directory.Exists(backupPath)) Directory.Delete(backupPath, true);
+            }
+            catch (Exception ex) { Log($"Cleanup backup failed: {ex.Message}"); }
         }
 
         // ===============================
@@ -126,6 +195,9 @@ namespace Updater
             foreach (var dir in Directory.GetDirectories(sourceDir))
             {
                 string dirName = Path.GetFileName(dir);
+                // Bỏ qua thư mục backup nếu nó nằm trong source (không nên xảy ra)
+                if (dirName.Equals("_update_backup_", StringComparison.OrdinalIgnoreCase)) continue;
+
                 CopyDirectory(dir, Path.Combine(targetDir, dirName));
             }
         }
@@ -133,7 +205,8 @@ namespace Updater
         private static bool ShouldSkipFile(string fileName)
         {
             return SkipFiles.Any(f =>
-                f.Equals(fileName, StringComparison.OrdinalIgnoreCase));
+                f.Equals(fileName, StringComparison.OrdinalIgnoreCase)) ||
+                fileName.Equals("_update_backup_", StringComparison.OrdinalIgnoreCase);
         }
 
         // ===============================
