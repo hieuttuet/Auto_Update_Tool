@@ -4,7 +4,7 @@ Hướng dẫn setup:
 
 B1: Cài Costura.Fody và Fody để nén các file dll thành 1 file .exe  
 
-B2: Vào Solution Explorer -> Properties -> Build Events -> Copy vào mục "Post-build event command line"  ( loại bỏ file exe.config, *.xml, *.pdb )
+B2: Vào Solution Explorer -> Properties -> Build Events -> Copy vào mục "Post-build event command line"  ( loại bỏ file exe.config, *.xml, *.pdb )  
 del "$(TargetDir)$(TargetName).exe.config" /q  
 del "$(TargetDir)*.xml" /s /q /f  
 del "$(TargetDir)*.pdb" /q  
