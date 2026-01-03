@@ -15,4 +15,4 @@ Add -> Existing Item -> Chọn file Updater.exe
 B4: Chỉnh  Buil Action = Embedded Resource   
 
 B5: Thêm code xử lý update : thêm file IniService.cs ( config) , file LoginViewModel.cs ( check ver)  
-Nhớ thêm đường dẫn update ở file config nhé !!  
+Nhớ thêm đường dẫn update ở file config và share folder trên server nhé !!  
